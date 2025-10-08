@@ -1,0 +1,6 @@
+node_modules/
+.wweb-session/
+.DS_Store
+npm-debug.log*
+unified-bot/.wweb-session-loja/
+unified-bot/.wwebjs_cache/
