@@ -87,7 +87,7 @@ async function mainMenu(){
   }
   separator(`${ICONS.APP} BOT IPTV CLI`);
   // Bloco de marketing
-  console.log(`\n${BOLD(`${ICONS.WELCOME} Bem-vindo ao IPTV da Delivi!`)}\n`);
+    console.log(`\n${BOLD(`${ICONS.WELCOME} Bem-vindo ao IPTV da ViniOnTV!`)}\n`);
   console.log(`${ICONS.FIRE} O que oferecemos:`);
   console.log(GREEN(`${ICONS.CHECK} Mais de 10.000 canais em HD/4K`));
   console.log(GREEN(`${ICONS.CHECK} Filmes e séries atualizados`));
@@ -134,7 +134,11 @@ const marcasTV = {
   '1':'Samsung',
   '2':'LG',
   '3':'Roku',
-  '4':'Philco'
+  '4':'Philco',
+  '5':'Hisense',
+  '6':'TCL',
+  '7':'AOC',
+  '8':'Android TV / Google TV'
 };
 
 const OPEN_HOUR = 8; // 08:00
@@ -180,9 +184,12 @@ async function fluxoCadastro(){
   const screens = [];
   const tipos = {
     '1':'TV Smart',
-    '2':'Celular Android',
-    '3':'Tablet Android',
-    '4':'PC'
+    '2':'TV Box',
+    '3':'Fire TV Stick',
+    '4':'Chromecast',
+    '5':'Celular Android',
+    '6':'Tablet Android',
+    '7':'PC'
   };
 
   function coletarTela(slot){

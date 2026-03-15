@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import qrcode from 'qrcode-terminal';
 import wweb from 'whatsapp-web.js';
+import path from 'path';
 import { handleIncomingMessage } from './conversationService.js';
 import { setPlan, getCustomer } from './customerService.js';
 import { formatDateBR } from '../utils/date.js';
@@ -232,23 +233,31 @@ export function initWhatsApp() {
   const sessionPath = process.env.WA_SESSION_PATH || '.wweb-session';
   const headless = (process.env.WA_HEADLESS || 'true') !== 'false';
   const chromePath = process.env.WA_CHROME_PATH;
+  const chromeProfileDir = path.resolve(process.cwd(), '.chrome-profile-wa-bot');
   console.log(`[WhatsApp] Inicializando (headless=${headless}) sessão: ${sessionPath}`);
   if (chromePath) console.log(`[WhatsApp] Usando Chrome em: ${chromePath}`);
+  console.log(`[WhatsApp] Perfil de Chrome isolado em: ${chromeProfileDir}`);
 
   try {
     client = new Client({
+      takeoverOnConflict: true,
+      takeoverTimeoutMs: 60_000,
       authStrategy: new LocalAuth({ dataPath: sessionPath }),
+      restartOnAuthFail: true,
       puppeteer: {
         headless,
         executablePath: chromePath || undefined,
         args: [
+          `--user-data-dir=${chromeProfileDir}`,
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--disable-gpu'
+          '--disable-gpu',
+          '--ignore-certificate-errors',
+          '--ignore-ssl-errors'
         ]
       }
     });
@@ -284,12 +293,29 @@ export function initWhatsApp() {
 
   client.on('auth_failure', msg => {
     console.error('[WhatsApp] ❌ Falha de autenticação:', msg);
+    ready = false;
+    __waClient = null;
+    const _oldClient = client;
+    client = null;
+    setTimeout(async () => {
+      try { await _oldClient.destroy(); } catch {}
+      initializing = false;
+      console.log('[WhatsApp] Reinicializando após auth_failure...');
+      initWhatsApp();
+    }, 30000);
   });
 
   client.on('disconnected', reason => {
     ready = false;
-    console.log('[WhatsApp] Desconectado:', reason, 'Tentando reinicializar em 15s...');
-    setTimeout(() => { initializing = false; initWhatsApp(); }, 15000);
+    __waClient = null;
+    const _oldClient = client;
+    client = null;
+    console.log('[WhatsApp] Desconectado:', reason, '— Reinicializando em 20s...');
+    setTimeout(async () => {
+      try { await _oldClient.destroy(); } catch {}
+      initializing = false;
+      initWhatsApp();
+    }, 20000);
   });
 
   client.on('message', async msg => {

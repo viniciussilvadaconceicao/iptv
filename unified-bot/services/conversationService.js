@@ -18,6 +18,37 @@ const ICONS = {
 const NUMBER_EMOJI = { '0': '0️⃣', '1': '1️⃣', '2': '2️⃣', '3': '3️⃣', '4': '4️⃣', '5': '5️⃣', '6': '6️⃣', '7': '7️⃣', '8': '8️⃣', '9': '9️⃣' };
 const DEVICE_ICONS = { 'TV Smart': '📺', 'Celular Android': '📱', 'Tablet Android': '📱', 'PC': '💻' };
 const SEP = '━━━━━━━━━━━━━━';
+const DEVICE_TYPE_OPTIONS = {
+    '1': 'TV Smart',
+    '2': 'TV Box',
+    '3': 'Fire TV Stick',
+    '4': 'Chromecast',
+    '5': 'Celular Android',
+    '6': 'Tablet Android',
+    '7': 'PC'
+};
+const TV_BRAND_OPTIONS = {
+    '1': 'Samsung',
+    '2': 'LG',
+    '3': 'Roku',
+    '4': 'Philco',
+    '5': 'Hisense',
+    '6': 'TCL',
+    '7': 'AOC',
+    '8': 'Android TV / Google TV',
+    '9': null
+};
+const TV_VIDEO_URLS = {
+    samsung: process.env.TV_VIDEO_URL_SAMSUNG || '',
+    lg: process.env.TV_VIDEO_URL_LG || '',
+    roku: process.env.TV_VIDEO_URL_ROKU || '',
+    philco: process.env.TV_VIDEO_URL_PHILCO || '',
+    hisense: process.env.TV_VIDEO_URL_HISENSE || '',
+    tcl: process.env.TV_VIDEO_URL_TCL || '',
+    aoc: process.env.TV_VIDEO_URL_AOC || '',
+    android: process.env.TV_VIDEO_URL_ANDROID || '',
+    generic: process.env.TV_VIDEO_URL_GENERIC || ''
+};
 
 // Mensagem padrão de espera enquanto aguarda atendente
 const WAITING_MSG = [
@@ -62,7 +93,7 @@ function scheduleMenuTimeout(phone) {
 /* Montagem de mensagens / menus */
 function buildMarketing() {
     return [
-        `${ICONS.FIRE} *Bem-vindo IPTV Delivi!*`,
+        `${ICONS.FIRE} *Bem-vindo Ao ViniOnTV!*`,
         `${ICONS.CHECK} +10.000 canais *HD / 4K*`,
         `${ICONS.CHECK} Esportes *(SporTV, ESPN, Premiere, UFC, Max)*`,
         `${ICONS.CHECK} Lançamento de *Filmes e Series*`,
@@ -74,21 +105,33 @@ function buildMarketing() {
 
 function buildMainMenu() {
     const lines = [
-        `${NUMBER_EMOJI['1']} *Novo Cadastro* ${ICONS.NEW}`,
-        `${NUMBER_EMOJI['2']} *Tempo de Assinatura* ${ICONS.TIME}`,
-        `${NUMBER_EMOJI['3']} *Suporte* ${ICONS.SUPPORT}`,
-        `${NUMBER_EMOJI['4']} *Pagamento / Recarga* ${ICONS.PAY}`,
-        `${NUMBER_EMOJI['6']} *Falar com Atendente* ${ICONS.SUPPORT}`,
-        `${NUMBER_EMOJI['0']} *Encerrar* ${ICONS.EXIT}`
+        `${NUMBER_EMOJI['1']} Novo Cadastro`,
+        `${NUMBER_EMOJI['2']} Tempo de Assinatura / Status`,
+        `${NUMBER_EMOJI['3']} Suporte Técnico`,
+        `${NUMBER_EMOJI['4']} Pagamento / Recarga`,
+        `${NUMBER_EMOJI['6']} Falar com Atendente`,
+        `${NUMBER_EMOJI['7']} Desbloquear teste`,
+        `${NUMBER_EMOJI['0']} Encerrar atendimento`
     ];
+
     const attention = [
         '',
         `*ATENÇÃO!*`,
         `Caso nenhuma opção seja escolhida em 5 minutos o sistema encerrará automaticamente o atendimento.`,
         ''
     ].join('\n');
+
     return `${buildMarketing()}\n\n${SEP}\n*MENU PRINCIPAL*\n${lines.join('\n')}\n${SEP}\n${attention}`;
 }
+
+export async function sendMainMenuWithButtons(jid) {
+    const { getClient } = await import('./waClient.js');
+    const client = getClient();
+    if (!client) return;
+
+    await client.sendMessage(jid, `${buildMainMenu()}\n\nDigite o *número* da opção desejada.`);
+}
+
 
 function planosFormat(telas) {
     if (telas === '1') {
@@ -135,36 +178,58 @@ function isChoiceStep(step) {
 function buildTVAppInstructions(brand) {
     const linhas = [SEP, '📥 Instalar aplicativo na TV', SEP];
     const b = (brand || '').toLowerCase();
+    let videoKey = 'generic';
     if (b.includes('samsung')) {
+        videoKey = 'samsung';
         linhas.push(
             '1) Abra a 📺*Samsung Apps* (loja da TV).',
-            '2) Busque: *smartone IPTV* ou *IBO revenda*.',
+            '2) Busque: *smartone IPTV*.',
             '3) Após a instalação, grave o codigo do *MAC*.'
         );
     } else if (b.includes('lg')) {
+        videoKey = 'lg';
         linhas.push(
             '1) Abra a 📺*LG Content Store*.',
-            '2) Busque: *smartone IPTV* ou *IBO revenda*.',
+            '2) Busque: *smartone IPTV*.',
             '3) Após a instalação, grave o codigo do *MAC*.'
         );
     } else if (b.includes('roku')) {
+        videoKey = 'roku';
         linhas.push(
             '1) Abra a 📺*loja de canais Roku*.',
-            '2) Busque: *NinjaIPTV* ou *IBO revenda*.',
+            '2) Busque: *NinjaIPTV*.',
             '3) Após a instalação, grave o codigo do *MAC*.'
         );
     } else if (b.includes('philco')) {
+        videoKey = 'philco';
         linhas.push(
             '1) Abra a 📺*Philco Store*.',
-            '2) Busque: *smartone IPTV* ou *IBO revenda*.',
+            '2) Busque: *NinjaIPTV*.',
             '3) Após a instalação, grave o codigo do *MAC*.'
+        );
+    } else if (b.includes('hisense') || b.includes('tcl') || b.includes('aoc') || b.includes('android tv') || b.includes('google tv')) {
+        if (b.includes('hisense')) videoKey = 'hisense';
+        else if (b.includes('tcl')) videoKey = 'tcl';
+        else if (b.includes('aoc')) videoKey = 'aoc';
+        else videoKey = 'android';
+        linhas.push(
+            '1) Abra a 📺*loja de apps da TV* (*Google Play Store* ou equivalente).',
+            '2) Busque: *downloader*.',
+            '3) Após a instalação, dentro do aplicativo digite o codigo 8418803.',
+            '4) Com isso ira instalar automaticamente o UNITV.',
         );
     } else {
+        videoKey = 'generic';
         linhas.push(
-            '1) Abra a 📺loja de apps da TV.',
-            '2) Busque: *smartone IPTV* ou *IBO revenda*.',
-            '3) Após a instalação, grave o codigo do *MAC*.'
+            '1) Abra a 📺*loja de apps da TV* (*Google Play Store* ou equivalente).',
+            '2) Busque: *downloader*.',
+            '3) Após a instalação, dentro do aplicativo digite o codigo 8418803.',
+            '4) Com isso ira instalar automaticamente o UNITV.',
         );
+    }
+    const videoUrl = TV_VIDEO_URLS[videoKey] || TV_VIDEO_URLS.generic;
+    if (videoUrl) {
+        linhas.push('', `🎥 Vídeo explicativo: ${videoUrl}`);
     }
     linhas.push('', 'Envie OK para continuar.');
     return linhas.join('\n');
@@ -176,10 +241,44 @@ function buildOtherDeviceInstructions() {
         '📥 Instalar aplicativo no dispositivo',
         SEP,
         '1) Abra a app Store.',
-        '2) Busque: *FACILITA24* ou *IBO revenda*.',
-        '3) Após a instalação, grave o codigo do *MAC*.',
-        '',
+        '2) Busque: *downloader*.',
+        '3) Após a instalação, insira o codigo 8418803.',
+        '4) Com isso ira instalar automaticamente o UNITV.',
         'Envie OK para continuar.'
+    ].join('\n');
+}
+
+function buildDeviceTypeMenu(slot) {
+    return [
+        SEP,
+        `${ICONS.SCREEN} *Dispositivo ${slot} - Tipo*`,
+        `${NUMBER_EMOJI['1']} TV Smart 📺`,
+        `${NUMBER_EMOJI['2']} TV Box 📦`,
+        `${NUMBER_EMOJI['3']} Fire TV Stick 🔥`,
+        `${NUMBER_EMOJI['4']} Chromecast 📡`,
+        `${NUMBER_EMOJI['5']} Celular Android 📱`,
+        `${NUMBER_EMOJI['6']} Tablet Android 📱`,
+        `${NUMBER_EMOJI['7']} PC 💻`,
+        SEP,
+        'Digite o número referente ao assunto que você quer tratar:'
+    ].join('\n');
+}
+
+function buildTVBrandMenu(slot) {
+    return [
+        SEP,
+        `${ICONS.TV} *Marca / Sistema da TV (${slot}ª)*`,
+        `${NUMBER_EMOJI['1']} Samsung`,
+        `${NUMBER_EMOJI['2']} LG`,
+        `${NUMBER_EMOJI['3']} Roku`,
+        `${NUMBER_EMOJI['4']} Philco`,
+        `${NUMBER_EMOJI['5']} Hisense`,
+        `${NUMBER_EMOJI['6']} TCL`,
+        `${NUMBER_EMOJI['7']} AOC`,
+        `${NUMBER_EMOJI['8']} Android TV / Google TV`,
+        `${NUMBER_EMOJI['9']} Outra`,
+        SEP,
+        '*Digite: 1, 2, 3, 4, 5, 6, 7, 8 ou 9:*'
     ].join('\n');
 }
 
@@ -570,14 +669,16 @@ export async function handleIncomingMessage(fromRaw, body) {
     if (session.step === 'menu' && !session.temp._welcomed) {
         session.temp._welcomed = true;
         scheduleMenuTimeout(phoneKey);
-        return `${buildMainMenu()}\n\nDigite o *número* referente ao *assunto*\nque você quer tratar: `;
+        const jid = phoneKey.endsWith('@c.us') ? phoneKey : phoneKey + '@c.us';
+        await sendMainMenuWithButtons(jid);
+        return; // Não retorna texto, pois já enviou os botões
     }
 
     if (['menu', 'help', '?'].includes((text || '').toLowerCase())) {
         reset(phoneKey);
         const s2 = getSession(phoneKey); s2.temp._welcomed = true;
         scheduleMenuTimeout(phoneKey);
-        return `📌 Reiniciado.\n\n${buildMainMenu()}\n\nEnvie *1, 2, 3, 4 ou 6*:`;
+        return `📌 Reiniciado.\n\n${buildMainMenu()}\n\nEnvie *1, 2, 3, 4, 6 ou 7*:`;
     }
 
     if (session.step === 'menu') {
@@ -598,7 +699,7 @@ export async function handleIncomingMessage(fromRaw, body) {
                 }
                 session.step = 'cadastro_nome_completo';
                 session.temp = { phone: phoneKey, _welcomed: true };
-                return `${ICONS.NEW} *Cadastro*\nEnvie *Nome e Sobrenome* em uma única linha:`;
+                return `${ICONS.NEW} *Cadastro*\nEnvie pra min seu *Nome e Sobrenome* em uma única linha:`;
             }
             case '2': {
                 const { customer: c } = await findCustomerByAny(phoneKey);
@@ -712,6 +813,40 @@ export async function handleIncomingMessage(fromRaw, body) {
                 session.step = 'pag_phone';
                 return `${ICONS.PAY} *Pagamento / Recarga*\nInforme o *telefone* do cadastro ou digite *meu*:`;
             }
+            case '7': {
+                // Fluxo simples: registra pedido de teste e avisa o admin
+                const { customer: c, usedKey } = await findCustomerByAny(phoneKey);
+                const keyForContact = toPhoneKey(c?.phone || usedKey || phoneKey);
+
+                if (ADMIN_PHONE) {
+                    const nomeCli = c ? `${c.firstName} ${c.lastName}` : 'Não cadastrado';
+                    const adminMsg = [
+                        '📣 *TESTE GRATUITO SOLICITADO*',
+                        `📞 Telefone: ${keyForContact}`,
+                        `👤 Cliente: ${nomeCli}`,
+                        '🧪 Pedido: Desbloquear teste (até 3 dias)',
+                        `🕒 ${new Date().toLocaleString('pt-BR')}`,
+                        '',
+                        'Use "assumir <telefone>" para falar com o cliente e liberar o teste.'
+                    ].join('\n');
+                    (async () => {
+                        try {
+                            const { getClient } = await import('./waClient.js');
+                            const cli = getClient();
+                            if (cli) {
+                                const jid = toPhoneKey(ADMIN_PHONE).endsWith('@c.us') ? toPhoneKey(ADMIN_PHONE) : toPhoneKey(ADMIN_PHONE) + '@c.us';
+                                await cli.sendMessage(jid, adminMsg);
+                            }
+                        } catch (err) {
+                            console.error('[NotifyAdmin] Falha teste gratuito (menu 7):', err?.message || err);
+                        }
+                    })();
+                    await openHandoff(keyForContact);
+                }
+
+                // Mensagem para o usuário
+                return `${ICONS.PLAN} *Teste gratuito*\nSeu pedido de teste foi registrado e será analisado.\n${WAITING_MSG}`;
+            }
             case '6': {
                 const { customer: c, usedKey } = await findCustomerByAny(phoneKey);
                 const keyForContact = toPhoneKey(c?.phone || usedKey || phoneKey);
@@ -763,7 +898,7 @@ export async function handleIncomingMessage(fromRaw, body) {
             }
             default:
                 scheduleMenuTimeout(phoneKey);
-                return `Opção inválida.\n\n${buildMainMenu()}\n\nEnvie *1, 2, 3, 4 ou 6*:`;
+                return `Opção inválida.\n\n${buildMainMenu()}\n\nEnvie *1, 2, 3, 4, 6 ou 7*:`;
         }
     }
 
@@ -938,49 +1073,28 @@ async function handleCadastro(session, textRaw) {
         if (!plano) return 'Código inválido. Repita apenas o número:';
         t.plano = plano;
         session.step = 'cadastro_dispositivo1_tipo';
-        return [
-            SEP,
-            `${ICONS.SCREEN} *Dispositivo 1 - Tipo*`,
-            `${NUMBER_EMOJI['1']} TV Smart 📺`,
-            `${NUMBER_EMOJI['2']} Celular Android 📱`,
-            `${NUMBER_EMOJI['3']} Tablet Android 📱`,
-            `${NUMBER_EMOJI['4']} PC 💻`,
-            SEP,
-            'Digite o número referente ao assunto que você quer tratar:'
-        ].join('\n');
+        return buildDeviceTypeMenu(1);
         }
         case 'cadastro_dispositivo1_tipo': {
-            const map = { '1': 'TV Smart', '2': 'Celular Android', '3': 'Tablet Android', '4': 'PC' };
-            const tipo = map[text];
-            if (!tipo) return 'Código inválido. Digite 1, 2, 3 ou 4:';
+            const tipo = DEVICE_TYPE_OPTIONS[text];
+            if (!tipo) return 'Código inválido. Digite 1, 2, 3, 4, 5, 6 ou 7:';
             t.dispositivos = [{ slot: 1, type: tipo }];
             if (tipo === 'TV Smart') {
                 session.step = 'cadastro_dispositivo1_marca';
-                return [
-                    SEP,
-                    `${ICONS.TV} *Marca da TV (1ª)*`,
-                    `${NUMBER_EMOJI['1']} Samsung`,
-                    `${NUMBER_EMOJI['2']} LG`,
-                    `${NUMBER_EMOJI['3']} Roku`,
-                    `${NUMBER_EMOJI['4']} Philco`,
-                    `${NUMBER_EMOJI['5']} Outra`,
-                    SEP,
-                    '*Digite: 1, 2, 3, 4 ou 5:*'
-                ].join('\n');
+                return buildTVBrandMenu(1);
             }
             session.step = 'cadastro_dispositivo1_app';
             return buildOtherDeviceInstructions();
         }
         case 'cadastro_dispositivo1_marca': {
-            const mapMarca1 = { '1': 'Samsung', '2': 'LG', '3': 'Roku', '4': 'Philco', '5': null };
-            if (!mapMarca1[text]) {
-                if (text === '5') {
+            if (!(text in TV_BRAND_OPTIONS)) {
+                return 'Opção inválida. Digite 1, 2, 3, 4, 5, 6, 7, 8 ou 9:';
+            }
+            if (TV_BRAND_OPTIONS[text] === null) {
                     session.step = 'cadastro_dispositivo1_marca_outra';
                     return 'Digite a *Marca*:';
-                }
-                return 'Opção inválida. Digite 1, 2, 3, 4 ou 5:';
             }
-            t.dispositivos[0].brand = mapMarca1[text];
+            t.dispositivos[0].brand = TV_BRAND_OPTIONS[text];
             session.step = 'cadastro_dispositivo1_app';
             return buildTVAppInstructions(t.dispositivos[0].brand);
         }
@@ -999,42 +1113,30 @@ async function handleCadastro(session, textRaw) {
             t.dispositivos[0].macUpper = (text || '').trim().toUpperCase();
             if (t.telas === '2') {
                 session.step = 'cadastro_dispositivo2_tipo';
-                return `${ICONS.SCREEN} Dispositivo 2 - Tipo:\n1) ${DEVICE_ICONS['TV Smart']} TV Smart\n2) ${DEVICE_ICONS['Celular Android']} Celular Android\n3) ${DEVICE_ICONS['Tablet Android']} Tablet Android\n4) ${DEVICE_ICONS['PC']} PC\nEnvie o número:`;
+                return buildDeviceTypeMenu(2);
             }
             session.step = 'cadastro_confirm';
             return resumoCadastroTemp(t);
         case 'cadastro_dispositivo2_tipo': {
-            const map2 = { '1': 'TV Smart', '2': 'Celular Android', '3': 'Tablet Android', '4': 'PC' };
-            const tipo2 = map2[text];
-            if (!tipo2) return 'Código inválido. Digite 1, 2, 3 ou 4:';
+            const tipo2 = DEVICE_TYPE_OPTIONS[text];
+            if (!tipo2) return 'Código inválido. Digite 1, 2, 3, 4, 5, 6 ou 7:';
             t.dispositivos.push({ slot: 2, type: tipo2 });
             if (tipo2 === 'TV Smart') {
                 session.step = 'cadastro_dispositivo2_marca';
-                return [
-                    SEP,
-                    `${ICONS.TV} *Marca da TV (2ª)*`,
-                    `${NUMBER_EMOJI['1']} Samsung`,
-                    `${NUMBER_EMOJI['2']} LG`,
-                    `${NUMBER_EMOJI['3']} Roku`,
-                    `${NUMBER_EMOJI['4']} Philco`,
-                    `${NUMBER_EMOJI['5']} Outra`,
-                    SEP,
-                    '*Digite: 1, 2, 3, 4 ou 5:*'
-                ].join('\n');
+                return buildTVBrandMenu(2);
             }
             session.step = 'cadastro_dispositivo2_app';
             return buildOtherDeviceInstructions();
         }
         case 'cadastro_dispositivo2_marca': {
-            const mapMarca2 = { '1': 'Samsung', '2': 'LG', '3': 'Roku', '4': 'Philco', '5': null };
-            if (!mapMarca2[text]) {
-                if (text === '5') {
+            if (!(text in TV_BRAND_OPTIONS)) {
+                return 'Opção inválida. Digite: 1, 2, 3, 4, 5, 6, 7, 8 ou 9:';
+            }
+            if (TV_BRAND_OPTIONS[text] === null) {
                     session.step = 'cadastro_dispositivo2_marca_outra';
                     return 'Digite a *Marca*:';
-                }
-                return 'Opção inválida. Digite: 1, 2, 3, 4 ou 5:';
             }
-            t.dispositivos[1].brand = mapMarca2[text];
+            t.dispositivos[1].brand = TV_BRAND_OPTIONS[text];
             session.step = 'cadastro_dispositivo2_app';
             return buildTVAppInstructions(t.dispositivos[1].brand);
         }
@@ -1067,8 +1169,9 @@ async function handleCadastro(session, textRaw) {
                 return 'Erro ao criar cliente: ' + (e?.message || e);
             }
             await addScreens(t.phone, t.dispositivos);
-            const activationFee = t.dispositivos.filter(d => d.type === 'TV Smart').length * 40;
-            const total = t.plano.preco + activationFee;
+            // Taxa de ativação removida: sempre 0
+            const activationFee = 0;
+            const total = t.plano.preco;
             await setPlan(t.phone, {
                 screensCount: parseInt(t.telas, 10),
                 planType: t.telas + '-telas',
@@ -1088,7 +1191,6 @@ async function handleCadastro(session, textRaw) {
                 `*Plano:* ${t.plano.label}`,
                 `*Telas:* ${t.telas}`,
                 `*Valor:* R$${t.plano.preco}`,
-                `*Taxa Ativação:* R$${activationFee}`,
                 `*Total a Pagar:* R$${total}`,
                 '',
                 `🔐 *PIX (${pixTipo})*: ${pixChave}`,
@@ -1106,7 +1208,7 @@ async function handleCadastro(session, textRaw) {
                     `📌 Bairro: ${t.bairro}`,
                     `🖥 Telas: ${t.telas}`,
                     `📦 Plano: ${t.plano.label} (R$${t.plano.preco})`,
-                    `💰 Taxa: R$${activationFee} | Total: R$${total}`,
+                    `💰 Total: R$${total}`,
                     '🔌 Dispositivos:',
                     t.dispositivos.map(d => ` - ${d.slot}) ${d.type}${d.brand ? ` (${d.brand})` : ''} MAC: ${d.mac || '-'}`).join('\n'),
                     `🕒 ${new Date().toLocaleString('pt-BR')}`,
@@ -1136,14 +1238,14 @@ async function handleCadastro(session, textRaw) {
 
 /* Resumo do cadastro */
 function resumoCadastroTemp(t) {
-    const ativ = t.dispositivos.filter(d => d.type === 'TV Smart').length * 40;
-    const total = t.plano.preco + ativ;
+    // Taxa de ativação removida do resumo: total é só o valor do plano
+    const ativ = 0;
+    const total = t.plano.preco;
     const info = [
         `*Nome:* ${t.firstName} ${t.lastName}`,
         `*Bairro:* ${t.bairro}`,
         `*Telas:* ${t.telas}`,
         `*Plano:* ${t.plano.label} (R$${t.plano.preco})`,
-        `*Taxa Ativação:* R$${ativ}`,
         '',
         `⚡ *TOTAL:* R$${total}`
     ].join('\n');
