@@ -337,7 +337,8 @@ function isLikelyBase64Image(s) {
 }
 
 /* Handoff / notificação admin */
-async function openHandoff(clientPhoneKey) {
+async function openHandoff(clientPhoneKey, opts = {}) {
+    const { notifyClient = true } = opts;
     if (!ADMIN_PHONE) return;
     const clientKey = toPhoneKey(clientPhoneKey);
     const adminKey = toPhoneKey(ADMIN_PHONE);
@@ -379,7 +380,9 @@ async function openHandoff(clientPhoneKey) {
                 WAITING_MSG
             ].join('\n');
             await cli.sendMessage(adminJid, adminMsg);
-            await cli.sendMessage(clientJid, clientMsg);
+            if (notifyClient) {
+                await cli.sendMessage(clientJid, clientMsg);
+            }
         }
     } catch (err) {
         console.error('[Handoff] falha notificar admin/cliente:', err?.message || err);
@@ -719,11 +722,11 @@ export async function handleIncomingMessage(fromRaw, body) {
                             console.error('[NotifyAdmin] Falha teste gratuito (menu 1):', err?.message || err);
                         }
                     })();
-                    await openHandoff(keyForContact);
+                    await openHandoff(keyForContact, { notifyClient: false });
                 }
 
                 // Mensagem para o usuário
-                return `${ICONS.PLAN} *Teste gratuito*\nSeu pedido de teste foi registrado e será analisado.\n${WAITING_MSG}`;
+                return `${ICONS.PLAN} *Teste gratuito solicitado* 🚀\nSeu pedido foi recebido com sucesso..\n\n⏳ Em breve um atendente irá liberar seu acesso para teste.`;
             }
             case '2': {
                 const { customer: existing } = await findCustomerByAny(phoneKey);
