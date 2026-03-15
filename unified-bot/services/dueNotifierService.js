@@ -188,9 +188,9 @@ export async function runDueSweepOnce({ notifyFn = console.log } = {}) {
       if (!dedup.sent[k]) {
         const msg =
       `Olá, ${nome}! 😊\n\n` +
-      `Passando para avisar que a sua fatura vence em *${endBR}*.\n\n` +
+      `Passando para avisar que a sua assinatura vence em *${endBR}*.\n\n` +
       `Esse é apenas um lembrete antecipado para você se programar com tranquilidade.\n` +
-      `Qualquer dúvida, fico à disposição.`;
+      `Qualquer dúvida, é só me avisar 👍.`;
         sendMessageQueued(c.phone, msg);
         dedup.sent[k] = true;
         sentCount++;
@@ -204,12 +204,8 @@ export async function runDueSweepOnce({ notifyFn = console.log } = {}) {
       if (!dedup.sent[k]) {
         const msg =
 `Olá, ${nome}! 😊\n\n` +
-`Passando para avisar que o vencimento do seu plano será amanhã (${endBR}).\n` +
-`Caso queira já deixar a renovação programada, seguem as opções:\n\n` +
-`*🔄 Opções de renovação*\n` +
-`${buildListaRenovacao(screens)}\n\n` +
-`${buildPixInfo()}\n\n` +
-`Se preferir, após o pagamento é só enviar o comprovante por aqui para deixar tudo ativo sem interrupção. 👍`;
+`Passando para lembrar que sua assinatura vence *amanhã (${endBR})*.\n\n` +
+`Se desejar renovar antes do vencimento é só me avisar aqui no WhatsApp 👍`;
         sendMessageQueued(c.phone, msg);
         dedup.sent[k] = true;
         sentCount++;
@@ -223,7 +219,8 @@ export async function runDueSweepOnce({ notifyFn = console.log } = {}) {
       if (!dedup.sent[kCli]) {
         const msg =
 `Olá, ${nome}! 😊\n\n` +
-`Hoje é o dia de vencimento do seu plano (${endBR}). Seguem as informações para renovação:\n\n` +
+`Hoje é o dia de vencimento da sua assinatura (*${endBR}*).\n\n` +
+`Se desejar renovar para continuar com acesso normalmente,basta realizar a renovação.\n\n` +
 `📄 *Dados da Assinatura*\n` +
 `• Cliente: ${nome}\n` +
 `• WhatsApp: ${c.phone}\n` +
