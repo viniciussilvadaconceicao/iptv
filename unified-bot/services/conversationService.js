@@ -105,12 +105,12 @@ function buildMarketing() {
 
 function buildMainMenu() {
     const lines = [
-        `${NUMBER_EMOJI['1']} Novo Cadastro`,
-        `${NUMBER_EMOJI['2']} Tempo de Assinatura / Status`,
-        `${NUMBER_EMOJI['3']} Suporte Técnico`,
-        `${NUMBER_EMOJI['4']} Pagamento / Recarga`,
+        `${NUMBER_EMOJI['1']} TESTE GRÁTIS`,
+        `${NUMBER_EMOJI['2']} Novo Cadastro`,
+        `${NUMBER_EMOJI['3']} Tempo de Assinatura / Status`,
+        `${NUMBER_EMOJI['4']} Suporte Técnico`,
+        `${NUMBER_EMOJI['5']} Pagamento / Recarga`,
         `${NUMBER_EMOJI['6']} Falar com Atendente`,
-        `${NUMBER_EMOJI['7']} Desbloquear teste`,
         `${NUMBER_EMOJI['0']} Encerrar atendimento`
     ];
 
@@ -678,7 +678,7 @@ export async function handleIncomingMessage(fromRaw, body) {
         reset(phoneKey);
         const s2 = getSession(phoneKey); s2.temp._welcomed = true;
         scheduleMenuTimeout(phoneKey);
-        return `📌 Reiniciado.\n\n${buildMainMenu()}\n\nEnvie *1, 2, 3, 4, 6 ou 7*:`;
+        return `📌 Reiniciado.\n\n${buildMainMenu()}\n\nEnvie *1, 2, 3, 4, 5 ou 6*:`;
     }
 
     if (session.step === 'menu') {
@@ -690,6 +690,40 @@ export async function handleIncomingMessage(fromRaw, body) {
 
         switch (text) {
             case '1': {
+                // Fluxo simples: registra pedido de teste e avisa o admin
+                const { customer: c, usedKey } = await findCustomerByAny(phoneKey);
+                const keyForContact = toPhoneKey(c?.phone || usedKey || phoneKey);
+
+                if (ADMIN_PHONE) {
+                    const nomeCli = c ? `${c.firstName} ${c.lastName}` : 'Não cadastrado';
+                    const adminMsg = [
+                        '📣 *TESTE GRATUITO SOLICITADO*',
+                        `📞 Telefone: ${keyForContact}`,
+                        `👤 Cliente: ${nomeCli}`,
+                        '🧪 Pedido: Desbloquear teste (até 3 dias)',
+                        `🕒 ${new Date().toLocaleString('pt-BR')}`,
+                        '',
+                        'Use "assumir <telefone>" para falar com o cliente e liberar o teste.'
+                    ].join('\n');
+                    (async () => {
+                        try {
+                            const { getClient } = await import('./waClient.js');
+                            const cli = getClient();
+                            if (cli) {
+                                const jid = toPhoneKey(ADMIN_PHONE).endsWith('@c.us') ? toPhoneKey(ADMIN_PHONE) : toPhoneKey(ADMIN_PHONE) + '@c.us';
+                                await cli.sendMessage(jid, adminMsg);
+                            }
+                        } catch (err) {
+                            console.error('[NotifyAdmin] Falha teste gratuito (menu 1):', err?.message || err);
+                        }
+                    })();
+                    await openHandoff(keyForContact);
+                }
+
+                // Mensagem para o usuário
+                return `${ICONS.PLAN} *Teste gratuito*\nSeu pedido de teste foi registrado e será analisado.\n${WAITING_MSG}`;
+            }
+            case '2': {
                 const { customer: existing } = await findCustomerByAny(phoneKey);
                 if (existing) {
                     reset(phoneKey);
@@ -701,7 +735,7 @@ export async function handleIncomingMessage(fromRaw, body) {
                 session.temp = { phone: phoneKey, _welcomed: true };
                 return `${ICONS.NEW} *Cadastro*\nEnvie pra min seu *Nome e Sobrenome* em uma única linha:`;
             }
-            case '2': {
+            case '3': {
                 const { customer: c } = await findCustomerByAny(phoneKey);
                 if (c && c.endDate) {
                     const rem = daysRemaining(c.endDate);
@@ -712,7 +746,7 @@ export async function handleIncomingMessage(fromRaw, body) {
                 session.step = 'tempo_phone';
                 return `${ICONS.TIME} *Tempo de Assinatura*\nInforme o *telefone* (somente números) ou digite *menu* para usar seu WhatsApp:`;
             }
-            case '3': {
+            case '4': {
                 const { customer: c } = await findCustomerByAny(phoneKey);
                 if (c) {
                     const msgUser = `${ICONS.SUPPORT} *Solicitação registrada*\nCliente: *${c.firstName} ${c.lastName}*\nPlano: *${c.plan?.durationLabel || '-'}*\n${ICONS.CAL} Vencimento: *${c.endDate ? formatDateBR(c.endDate) : '-'}*\n\n${WAITING_MSG}`;
@@ -748,7 +782,7 @@ export async function handleIncomingMessage(fromRaw, body) {
                                     await cli.sendMessage(jid, adminMsg);
                                 }
                             } catch (err) {
-                                console.error('[NotifyAdmin] Falha suporte (menu 3):', err?.message || err);
+                                console.error('[NotifyAdmin] Falha suporte (menu 4):', err?.message || err);
                             }
                         })();
                         await openHandoff(toPhoneKey(c.phone || phoneKey));
@@ -760,7 +794,7 @@ export async function handleIncomingMessage(fromRaw, body) {
                 session.step = 'suporte_phone';
                 return `${ICONS.SUPPORT} *Suporte*\nInforme o *telefone* do cadastro ou digite *meu*:`;
             }
-            case '4': {
+            case '5': {
                 const { customer: c, usedKey } = await findCustomerByAny(phoneKey);
                 if (c && c.plan) {
                     const keyForPayment = toPhoneKey(c.phone || usedKey || phoneKey);
@@ -801,7 +835,7 @@ export async function handleIncomingMessage(fromRaw, body) {
                                     await cli.sendMessage(jid, adminMsg);
                                 }
                             } catch (err) {
-                                console.error('[NotifyAdmin] Falha recarga (menu 4):', err?.message || err);
+                                console.error('[NotifyAdmin] Falha recarga (menu 5):', err?.message || err);
                             }
                         })();
                         await openHandoff(keyForPayment);
@@ -812,40 +846,6 @@ export async function handleIncomingMessage(fromRaw, body) {
                 }
                 session.step = 'pag_phone';
                 return `${ICONS.PAY} *Pagamento / Recarga*\nInforme o *telefone* do cadastro ou digite *meu*:`;
-            }
-            case '7': {
-                // Fluxo simples: registra pedido de teste e avisa o admin
-                const { customer: c, usedKey } = await findCustomerByAny(phoneKey);
-                const keyForContact = toPhoneKey(c?.phone || usedKey || phoneKey);
-
-                if (ADMIN_PHONE) {
-                    const nomeCli = c ? `${c.firstName} ${c.lastName}` : 'Não cadastrado';
-                    const adminMsg = [
-                        '📣 *TESTE GRATUITO SOLICITADO*',
-                        `📞 Telefone: ${keyForContact}`,
-                        `👤 Cliente: ${nomeCli}`,
-                        '🧪 Pedido: Desbloquear teste (até 3 dias)',
-                        `🕒 ${new Date().toLocaleString('pt-BR')}`,
-                        '',
-                        'Use "assumir <telefone>" para falar com o cliente e liberar o teste.'
-                    ].join('\n');
-                    (async () => {
-                        try {
-                            const { getClient } = await import('./waClient.js');
-                            const cli = getClient();
-                            if (cli) {
-                                const jid = toPhoneKey(ADMIN_PHONE).endsWith('@c.us') ? toPhoneKey(ADMIN_PHONE) : toPhoneKey(ADMIN_PHONE) + '@c.us';
-                                await cli.sendMessage(jid, adminMsg);
-                            }
-                        } catch (err) {
-                            console.error('[NotifyAdmin] Falha teste gratuito (menu 7):', err?.message || err);
-                        }
-                    })();
-                    await openHandoff(keyForContact);
-                }
-
-                // Mensagem para o usuário
-                return `${ICONS.PLAN} *Teste gratuito*\nSeu pedido de teste foi registrado e será analisado.\n${WAITING_MSG}`;
             }
             case '6': {
                 const { customer: c, usedKey } = await findCustomerByAny(phoneKey);
@@ -898,7 +898,7 @@ export async function handleIncomingMessage(fromRaw, body) {
             }
             default:
                 scheduleMenuTimeout(phoneKey);
-                return `Opção inválida.\n\n${buildMainMenu()}\n\nEnvie *1, 2, 3, 4, 6 ou 7*:`;
+                return `Opção inválida.\n\n${buildMainMenu()}\n\nEnvie *1, 2, 3, 4, 5 ou 6*:`;
         }
     }
 
