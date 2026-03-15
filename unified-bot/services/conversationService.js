@@ -53,7 +53,7 @@ const TV_VIDEO_URLS = {
 // Mensagem padrão de espera enquanto aguarda atendente
 const WAITING_MSG = [
     '🕒 *Logo você será atendido.*',
-    '✅ *Tempo médio: 10 a 20 min.*'
+    '✅ *Tempo médio de atendimento: 1 a 3 min.*'
 ].join('\n');
 
 function getSession(phone) {
@@ -94,30 +94,32 @@ function scheduleMenuTimeout(phone) {
 function buildMarketing() {
     return [
         `${ICONS.FIRE} *Bem-vindo Ao ViniOnTV!*`,
-        `${ICONS.CHECK} +10.000 canais *HD / 4K*`,
-        `${ICONS.CHECK} Esportes *(SporTV, ESPN, Premiere, UFC, Max)*`,
-        `${ICONS.CHECK} Lançamento de *Filmes e Series*`,
-        `${ICONS.CHECK} *Suporte atencioso*`,
-        `${ICONS.CHECK} *Preço justo e estável*`,
-        `${ICONS.CHECK} *Atendimento rápido e eficaz*`
+        `${ICONS.CHECK} +1000 canais *HD / 4K*`,
+        `${ICONS.CHECK} *SporTV, ESPN, UFC e Premiere*`,
+        `${ICONS.CHECK} *Filmes,Series e lançamentos*`,
+        `${ICONS.CHECK} Funciona em *TV, Celular e TV Box*`,
+        `${ICONS.CHECK} *Teste grátis antes de assinar*`,
+        `${ICONS.CHECK} *Suporte rápido pelo WhatsApp*`,
+        ``,
+        `Digite o número da opção 👇`
     ].join('\n');
 }
 
 function buildMainMenu() {
     const lines = [
-        `${NUMBER_EMOJI['1']} TESTE GRÁTIS`,
-        `${NUMBER_EMOJI['2']} Novo Cadastro`,
-        `${NUMBER_EMOJI['3']} Tempo de Assinatura / Status`,
-        `${NUMBER_EMOJI['4']} Suporte Técnico`,
-        `${NUMBER_EMOJI['5']} Pagamento / Recarga`,
-        `${NUMBER_EMOJI['6']} Falar com Atendente`,
-        `${NUMBER_EMOJI['0']} Encerrar atendimento`
+        `${NUMBER_EMOJI['1']} 🚀liberar TESTE GRÁTIS `,
+        `${NUMBER_EMOJI['2']} 💳 Assinar agora  `,
+        `${NUMBER_EMOJI['3']} ⏳ Ver tempo da minha assinatura`,
+        `${NUMBER_EMOJI['4']} 🔧 Suporte técnico`,
+        `${NUMBER_EMOJI['5']} 💰 Pagamento / Renovação `,
+        `${NUMBER_EMOJI['6']} 👨‍💻 Falar com atendente `,
+        `${NUMBER_EMOJI['0']} ❌ Encerrar atendimento`
     ];
 
     const attention = [
         '',
-        `*ATENÇÃO!*`,
-        `Caso nenhuma opção seja escolhida em 5 minutos o sistema encerrará automaticamente o atendimento.`,
+        `⚠️*ATENÇÃO!*`,
+        `Responda com o *número da opção acima* para continuar 👆.`,
         ''
     ].join('\n');
 
@@ -129,7 +131,7 @@ export async function sendMainMenuWithButtons(jid) {
     const client = getClient();
     if (!client) return;
 
-    await client.sendMessage(jid, `${buildMainMenu()}\n\nDigite o *número* da opção desejada.`);
+    await client.sendMessage(jid, buildMainMenu());
 }
 
 
